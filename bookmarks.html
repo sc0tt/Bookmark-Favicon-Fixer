@@ -1,38 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
 <style type="text/css">
-body {
-font-family:arial;
-font-size:.8em;
-}
-#container {
-width:300px;
-
-position:absolute;
-top:50%;
-left:50%;
-margin:-170px 0 0 -170px;
-background:#dfdfdf;
-padding:20px;
-border-radius:15px;
-text-align:center;
-}
-.notice {
-color:red;
-}
-input[type="button"] {
-width:100px;
-}
-#bar {
-width:300px;
-height:20px;
-}
-.hidden {
-display:none;
-}
+body { font-family:arial; font-size:.8em; }
+#container { width:400px; position:absolute; top:50%; left:50%; margin:-170px 0 0 -200px; background:#dfdfdf; padding:20px; border-radius:15px; text-align:center; }
+.notice { color:red; }
+input[type="button"] { width:100px; }
+#bar { width:300px; height:20px; }
+.hidden { display:none; }
+.timeoutSeconds { width:40px; }
+.optionList {     list-style-type:none;     margin:0;     padding:0; }
 </style>
 <script>
+
+$(document).ready(function()
+{
+    isNaN(localStorage['timeoutSeconds']) ? $('.timeoutSeconds').val(10) : $('.timeoutSeconds').val(localStorage['timeoutSeconds'])
+    $('.timeoutSeconds').click(function()
+    {
+        localStorage['timeoutSeconds'] = isNaN($('.timeoutSeconds').val()) ?  10 : $('.timeoutSeconds').val();
+    });
+});
+
 function startIt() {
     document.getElementById("stop").className = "hidden";
     document.getElementById("bar").className = "hidden";
@@ -44,8 +34,8 @@ function startIt() {
 var urls = new Array();
 var i = 0;
 var stop = false;
-var currTab;
-var currId;
+var currTab = null;
+var currId = null;
 
 //Thanks to http://stackoverflow.com/questions/2812622/how-do-i-get-google-chromes-root-bookmarks-folder/2815066#2815066
 function getBookmarks(bookmarks){ 
@@ -72,7 +62,8 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 
 function removeTab() {
     document.getElementById("bar").value++;
-    chrome.tabs.remove(currId);
+    if(currTab != null)
+        chrome.tabs.remove(currId);
     if(i < urls.length) {
         fixFavicons();
     }
@@ -88,9 +79,18 @@ function fixFavicons() {
         chrome.tabs.create({'url':urls[i], 'selected':false}, function(tab) {
             i++;
             currId = tab.id;
+            currTab = tab;
+            setTimeout(checkHang, localStorage['timeoutSeconds'] * 1000, currId);
         });
     }
 }
+
+function checkHang(id)
+{
+    if(currId == id)
+        removeTab();
+}
+
 function doStart() {
     stop=false;
     fixFavicons();
@@ -100,10 +100,9 @@ function doStart() {
     document.getElementById("message").innerHTML = "";
 }
 function doStop() {
-    chrome.tabs.remove(currId);
     i = 0;
-    currTab = "";
-    currId = "";
+    currTab = null;
+    currId = null;
     stop=true;
     document.getElementById("start").className = "";
     document.getElementById("stop").className = "hidden";
@@ -120,6 +119,11 @@ function doStop() {
     <input type="button" value="Stop" id="stop" onclick="doStop();" /><br /><br />
     <progress id="bar" value="0" max="100"></progress><br />
     <span id="message"></span>
+    <div class="options">
+    <ul class="optionList">
+        <li><input type="number" min="1" class="timeoutSeconds"/> Maximum number of seconds to wait for a tab to load</li>
+    <ul>
+    </div>
 </div>
 </body>
 </html>
