@@ -1,0 +1,11 @@
+<html>
+<script>
+var firstRun = (localStorage['firstRun'] == 'true');
+if (!firstRun) {
+  localStorage['firstRun'] = 'true';
+  chrome.tabs.create({'url': chrome.extension.getURL('bookmarks.html')}, function(tab) {
+  //Tab is now open!
+  });
+}
+</script>
+</html>

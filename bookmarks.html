@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+body {
+font-family:arial;
+font-size:.8em;
+}
+#container {
+width:300px;
+
+position:absolute;
+top:50%;
+left:50%;
+margin:-170px 0 0 -170px;
+background:#dfdfdf;
+padding:20px;
+border-radius:15px;
+text-align:center;
+}
+.notice {
+color:red;
+}
+input[type="button"] {
+width:100px;
+}
+#bar {
+width:300px;
+height:20px;
+}
+.hidden {
+display:none;
+}
+</style>
+<script>
+function startIt() {
+    document.getElementById("stop").className = "hidden";
+    document.getElementById("bar").className = "hidden";
+    chrome.bookmarks.getTree(function(bookmarks) {
+        getBookmarks(bookmarks);
+        document.getElementById("bar").max = urls.length;
+    });
+}
+var urls = new Array();
+var i = 0;
+var stop = false;
+var currTab;
+var currId;
+
+//Thanks to http://stackoverflow.com/questions/2812622/how-do-i-get-google-chromes-root-bookmarks-folder/2815066#2815066
+function getBookmarks(bookmarks){ 
+    bookmarks.forEach(function(bm){
+        if(bm.url){
+            if(bm.url.substring(0,10) != "javascript")
+                urls.push(bm.url);
+        }
+        if (bm.children)
+        getBookmarks(bm.children);
+    });
+}
+
+/*
+Checks to see if the bookmark we loaded below is fully loaded,
+if so we will close it then open the next one. 
+*/
+
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if(tabId == currId && tab.status == "complete") {
+        setTimeout("removeTab()",1000);
+    }
+});
+
+function removeTab() {
+    document.getElementById("bar").value++;
+    chrome.tabs.remove(currId);
+    if(i < urls.length) {
+        fixFavicons();
+    }
+    else
+    {
+        document.getElementById("message").innerHTML = "Completed!";
+        doStop();
+    }
+}
+//Goes through the next bookmark. Starting at the first one.
+function fixFavicons() {
+    if(!stop) {
+        chrome.tabs.create({'url':urls[i], 'selected':false}, function(tab) {
+            i++;
+            currId = tab.id;
+        });
+    }
+}
+function doStart() {
+    stop=false;
+    fixFavicons();
+    document.getElementById("start").className = "hidden";
+    document.getElementById("stop").className = "";
+    document.getElementById("bar").className = "";
+    document.getElementById("message").innerHTML = "";
+}
+function doStop() {
+    chrome.tabs.remove(currId);
+    i = 0;
+    currTab = "";
+    currId = "";
+    stop=true;
+    document.getElementById("start").className = "";
+    document.getElementById("stop").className = "hidden";
+    document.getElementById("bar").value = 0;
+    document.getElementById("bar").className = "hidden";
+}
+</script>
+</head>
+<body onload="startIt();">
+<div id="container">
+    <h2>Bookmark Favicon Fixer</h2>
+    <p class="notice">This will open all your bookmarks and reload the favicons. Tabs will stay open for about 1 second after they load to ensure the favicon is grabbed.</p><br />
+    <input type="button" value="Start" id="start" onclick="doStart();" />
+    <input type="button" value="Stop" id="stop" onclick="doStop();" /><br /><br />
+    <progress id="bar" value="0" max="100"></progress><br />
+    <span id="message"></span>
+</div>
+</body>
+</html>
