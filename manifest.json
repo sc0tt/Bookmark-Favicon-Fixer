@@ -1,16 +1,16 @@
 {
-	"name": "Bookmark Favicon Fixer",
-	"version": "1.0.3",
-	"description": "Updates bookmark favicons.",
+    "name": "Bookmark Favicon Fixer",
+    "version": "1.0.3",
+    "description": "Updates bookmark favicons.",
     "background_page": "background.html",
     "options_page": "bookmarks.html",
-	"icons": {
-		"16": "icon.png",
-		"48": "icon48.png",
-		"128": "icon128.png"
-	},
-	"permissions": [
-		"bookmarks",
+    "icons": {
+        "16": "icon.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    },
+    "permissions": [
+        "bookmarks",
         "tabs"
-	]
+    ]
 }
