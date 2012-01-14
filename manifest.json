@@ -1,6 +1,6 @@
 {
     "name": "Bookmark Favicon Fixer",
-    "version": "1.0.3",
+    "version": "1.2.0",
     "description": "Updates bookmark favicons.",
     "background_page": "background.html",
     "options_page": "bookmarks.html",

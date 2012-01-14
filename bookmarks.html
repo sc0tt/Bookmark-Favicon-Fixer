@@ -9,17 +9,27 @@ body { font-family:arial; font-size:.8em; }
 input[type="button"] { width:100px; }
 #bar { width:300px; height:20px; }
 .hidden { display:none; }
-.timeoutSeconds { width:40px; }
-.optionList {     list-style-type:none;     margin:0;     padding:0; }
+.genericInput { width:40px; }
+.optionList {     list-style-type:none;     margin:0;     padding:0; text-align:left;}
+.optionList li {     margin:0;     padding:0; }
+.warn { color:red; font-weight:bold;}
 </style>
 <script>
 
 $(document).ready(function()
 {
-    isNaN(localStorage['timeoutSeconds']) ? $('.timeoutSeconds').val(10) : $('.timeoutSeconds').val(localStorage['timeoutSeconds'])
+    if(isNaN(localStorage['timeoutSeconds'])) localStorage['timeoutSeconds'] = 10;
+    $('.timeoutSeconds').val(localStorage['timeoutSeconds'])
     $('.timeoutSeconds').click(function()
     {
         localStorage['timeoutSeconds'] = isNaN($('.timeoutSeconds').val()) ?  10 : $('.timeoutSeconds').val();
+    });
+    
+    if(isNaN(localStorage['maxTabs'])) localStorage['maxTabs'] = 5;
+    $('.maxTabs').val(localStorage['maxTabs'])
+    $('.maxTabs').click(function()
+    {
+        localStorage['maxTabs'] = isNaN($('.maxTabs').val()) ?  5 : $('.maxTabs').val();
     });
 });
 
@@ -34,8 +44,8 @@ function startIt() {
 var urls = new Array();
 var i = 0;
 var stop = false;
-var currTab = null;
 var currId = null;
+var prog = new Array();
 
 //Thanks to http://stackoverflow.com/questions/2812622/how-do-i-get-google-chromes-root-bookmarks-folder/2815066#2815066
 function getBookmarks(bookmarks){ 
@@ -55,15 +65,23 @@ if so we will close it then open the next one.
 */
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    if(tabId == currId && tab.status == "complete") {
-        setTimeout("removeTab()",1000);
+    if($.inArray(tab.id,prog) > -1 && tab.status == "complete") {
+        setTimeout(removeTab,1000, tab.id);
     }
 });
 
-function removeTab() {
+function removeTab(id) {
     document.getElementById("bar").value++;
-    if(currTab != null)
-        chrome.tabs.remove(currId);
+    if($.inArray(id,prog) > -1)
+    {
+        chrome.tabs.remove(id, function()
+        {
+            prog = $.grep(prog,function(value) {
+                return value != id;
+            });
+        });
+    }
+    
     if(i < urls.length) {
         fixFavicons();
     }
@@ -78,22 +96,22 @@ function fixFavicons() {
     if(!stop) {
         chrome.tabs.create({'url':urls[i], 'selected':false}, function(tab) {
             i++;
-            currId = tab.id;
-            currTab = tab;
-            setTimeout(checkHang, localStorage['timeoutSeconds'] * 1000, currId);
+            prog.push(tab.id);
+            setTimeout(checkHang, localStorage['timeoutSeconds'] * 1000, tab.id);
         });
     }
 }
 
 function checkHang(id)
 {
-    if(currId == id)
-        removeTab();
+    if($.inArray(id,prog) > 0)
+        removeTab(id);
 }
 
 function doStart() {
     stop=false;
-    fixFavicons();
+    for(var i = 1; i <= localStorage['maxTabs']; i++)
+        setTimeout(fixFavicons,i*1000);
     document.getElementById("start").className = "hidden";
     document.getElementById("stop").className = "";
     document.getElementById("bar").className = "";
@@ -101,13 +119,13 @@ function doStart() {
 }
 function doStop() {
     i = 0;
-    currTab = null;
-    currId = null;
     stop=true;
     document.getElementById("start").className = "";
     document.getElementById("stop").className = "hidden";
     document.getElementById("bar").value = 0;
     document.getElementById("bar").className = "hidden";
+    chrome.tabs.remove(prog);
+    prog = new Array();
 }
 </script>
 </head>
@@ -121,7 +139,8 @@ function doStop() {
     <span id="message"></span>
     <div class="options">
     <ul class="optionList">
-        <li><input type="number" min="1" class="timeoutSeconds"/> Maximum number of seconds to wait for a tab to load</li>
+        <li><input type="number" min="1" class="genericInput timeoutSeconds"/> Maximum number of seconds to wait for a tab to load</li>
+        <li><input type="number" min="1" max="15" class="genericInput maxTabs"/> Maximum number of tabs to load at a time. <br /><span class="warn">Warning: Anything over 5 could cause some tabs to not close.</span></li>
     <ul>
     </div>
 </div>
